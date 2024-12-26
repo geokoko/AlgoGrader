@@ -25,4 +25,5 @@ Optional arguments:
 ## Test Case Format
 1. Input files should be named `input<i>.txt`, where `i` is the test case number.
 2. Expected output files should be named `output<i>.txt`, where `i` is the test case number.
-3. Actual results are stored in the `actual_results\` directory automatically during execution.
+3. Actual results are stored in the `actual_results/` directory automatically during execution.
+4. Input and expected output files should be stored in the `test_cases/<program_name>_tests` directory, where program name is the name of the program you are testing. (The filename without the language extension)
