@@ -87,8 +87,13 @@ def run_tests(program_name, program_dir, language, time_limit, memory_limit):
                 total += 1
             else:
                 print(f"  ❌ Test {test_number} failed! Wrong answer!")
-                print(f"     Expected output: {expected_output_file}", end="\t")
-                print(f"     Actual output: {actual_output_file}")
+                with open(expected_output_file, 'r') as expected_file:
+                    expected_content = expected_file.read()
+
+                with open(actual_output_file, 'r') as actual_file:
+                    actual_content = actual_file.read()
+                print(f"     Expected output:\t {expected_content}")
+                print(f"     Actual output:\t {actual_content}")
                 total += 1
                 all_passed = False
 
