@@ -5,6 +5,7 @@ import filecmp
 import glob
 from time import time
 import platform
+import shutil
 
 if platform.system() == "Linux":
     import resource
@@ -15,22 +16,33 @@ def set_memory_limit(memory_limit_mb):
         memory_limit_bytes = memory_limit_mb * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit_bytes, memory_limit_bytes))
 
-def run_tests(program_name, time_limit, memory_limit):
+def run_tests(program_name, program_dir, language, time_limit, memory_limit):
     """
     Run tests for a program and compare the output with expected output.
     Arguments:
         program_name -- the name of the program to test
+        language -- the language of the program (c, cpp, java, python)
         time_limit -- the time limit for each test case
         memory_limit -- the memory limit for each test case
     """
-    INPUT_FILES = f"../{program_name}_tests/input*.txt"
-    OUTPUT_FILES = f"../{program_name}_tests/output*.txt"
-    RESULTS_DIR = f"../{program_name}_tests/actual_results"
 
-    os.makedirs(RESULTS_DIR, exist_ok=True)
+    BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    INPUT_FILES = os.path.join(BASE_DIR, f"{program_name}_tests", "input*.txt")
+    OUTPUT_FILES = os.path.join(BASE_DIR, f"{program_name}_tests", "output*.txt")
+    RESULTS_DIR = os.path.join(BASE_DIR, f"{program_name}_tests", "actual_results")
+
+
+    shutil.rmtree(RESULTS_DIR, ignore_errors=True)
+    os.makedirs(RESULTS_DIR, exist_ok=False)
 
     input_files = sorted(glob.glob(INPUT_FILES), key=lambda x: int(os.path.basename(x).split("input")[1].split(".")[0]))
     output_files = sorted(glob.glob(OUTPUT_FILES), key=lambda x: int(os.path.basename(x).split("output")[1].split(".")[0]))
+
+    print("Input Files:", input_files)
+    print("Output Files:", output_files)
+
+    for file in input_files:
+        print(f"Checking: {file}, Exists? {os.path.exists(file)}")
 
     if not input_files or not output_files:
         print(f"❌ No test files found for {program_name}!")
@@ -52,7 +64,7 @@ def run_tests(program_name, time_limit, memory_limit):
         if language == 'c' or language == 'cpp':
             command = [f'./{program_name}.o']
         elif language == 'java':
-            command = ['java', program_name]
+            command = ['java', '-cp', '.', f'{program_name}']
         elif language == 'python':
             command = ['python3', f'{program_name}.py']
 
@@ -61,7 +73,15 @@ def run_tests(program_name, time_limit, memory_limit):
         try:
             start_time = time()
             with open(input_file, "r") as infile, open(actual_output_file, "w") as outfile:
-                subprocess.run(command, stdin=infile, stdout=outfile, stderr=subprocess.PIPE, timeout=time_limit, preexec_fn=lambda: set_memory_limit(memory_limit))   
+                subprocess.run(
+                        command, 
+                        cwd=program_dir, 
+                        stdin=infile, 
+                        stdout=outfile, 
+                        stderr=subprocess.PIPE, 
+                        timeout=time_limit, 
+                        preexec_fn=lambda: set_memory_limit(memory_limit)
+                    )   
             
             elapsed_time = time() - start_time
 
@@ -71,31 +91,32 @@ def run_tests(program_name, time_limit, memory_limit):
                 total += 1
             else:
                 print(f"  ❌ Test {test_number} failed! Wrong answer!")
-                print(f"     Expected output: {expected_output_file}")
+                print(f"     Expected output: {expected_output_file}", end="\t")
                 print(f"     Actual output: {actual_output_file}")
                 total += 1
                 all_passed = False
 
         except subprocess.CalledProcessError as e:
-            elapsed_time = time.time() - start_time
+            elapsed_time = time() - start_time
             print(f"  ❌ Test {test_number} crashed!")
             print(f"     Error: {e.stderr.decode('utf-8')}")
             all_passed = False
             total += 1
 
         except subprocess.TimeoutExpired:
-            elapsed_time = time.time() - start_time
+            elapsed_time = time() - start_time
             print(f"  ❌ Test {test_number} exceeded time limit of {time_limit} seconds! (Runtime: {elapsed_time}s)")
             all_passed = False
             total += 1
 
-        except subprocess.MemoryError:
+        except MemoryError:
             print(f"  ❌ Test {test_number} exceeded memory limit of {memory_limit} MB!")
             all_passed = False
             total += 1
 
         except FileNotFoundError:
             print(f"  ⚠️ File not found for {program_name}. Ensure {input_file} or {expected_output_file} exists.")
+            raise
             sys.exit(1)
 
         except Exception as e:
