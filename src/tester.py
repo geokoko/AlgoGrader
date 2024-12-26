@@ -27,19 +27,15 @@ def run_tests(program_name, program_dir, language, time_limit, memory_limit):
     """
 
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    INPUT_FILES = os.path.join(BASE_DIR, f"{program_name}_tests", "input*.txt")
-    OUTPUT_FILES = os.path.join(BASE_DIR, f"{program_name}_tests", "output*.txt")
-    RESULTS_DIR = os.path.join(BASE_DIR, f"{program_name}_tests", "actual_results")
-
+    INPUT_FILES = os.path.join(BASE_DIR, "test_cases", f"{program_name}_tests", "input*.txt")
+    OUTPUT_FILES = os.path.join(BASE_DIR, "test_cases", f"{program_name}_tests", "output*.txt")
+    RESULTS_DIR = os.path.join(BASE_DIR, "test_cases", f"{program_name}_tests", "actual_results")
 
     shutil.rmtree(RESULTS_DIR, ignore_errors=True)
     os.makedirs(RESULTS_DIR, exist_ok=False)
 
     input_files = sorted(glob.glob(INPUT_FILES), key=lambda x: int(os.path.basename(x).split("input")[1].split(".")[0]))
     output_files = sorted(glob.glob(OUTPUT_FILES), key=lambda x: int(os.path.basename(x).split("output")[1].split(".")[0]))
-
-    print("Input Files:", input_files)
-    print("Output Files:", output_files)
 
     for file in input_files:
         print(f"Checking: {file}, Exists? {os.path.exists(file)}")
