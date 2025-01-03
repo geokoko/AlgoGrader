@@ -6,26 +6,17 @@ import glob
 from time import time
 import platform
 import shutil
+from colorama import Fore, Style
 
 if platform.system() == "Linux":
     import resource
 
 def set_memory_limit(memory_limit_mb):
-    """Set memory limit for subprocess execution."""
     if platform.system() == "Linux":
         memory_limit_bytes = memory_limit_mb * 1024 * 1024
         resource.setrlimit(resource.RLIMIT_AS, (memory_limit_bytes, memory_limit_bytes))
 
 def run_tests(program_name, program_dir, language, time_limit, memory_limit):
-    """
-    Run tests for a program and compare the output with expected output.
-    Arguments:
-        program_name -- the name of the program to test
-        language -- the language of the program (c, cpp, java, python)
-        time_limit -- the time limit for each test case
-        memory_limit -- the memory limit for each test case
-    """
-
     BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     INPUT_FILES = os.path.join(BASE_DIR, "test_cases", f"{program_name}_tests", "input*.txt")
     OUTPUT_FILES = os.path.join(BASE_DIR, "test_cases", f"{program_name}_tests", "output*.txt")
@@ -37,20 +28,17 @@ def run_tests(program_name, program_dir, language, time_limit, memory_limit):
     input_files = sorted(glob.glob(INPUT_FILES), key=lambda x: int(os.path.basename(x).split("input")[1].split(".")[0]))
     output_files = sorted(glob.glob(OUTPUT_FILES), key=lambda x: int(os.path.basename(x).split("output")[1].split(".")[0]))
 
-    for file in input_files:
-        print(f"Checking: {file}, Exists? {os.path.exists(file)}")
-
     if not input_files or not output_files:
-        print(f"❌ No test files found for {program_name}!")
+        print(f"{Fore.RED}❌ No test files found for {program_name}!{Style.RESET_ALL}")
         return
 
     if len(input_files) != len(output_files):
-        print(f"❌ Mismatch in number of input and output files for {program_name}!")
+        print(f"{Fore.RED}❌ Mismatch in number of input and output files for {program_name}!{Style.RESET_ALL}")
         sys.exit(1)
 
     correct = 0
     total = 0
-    all_passed = True  # Start assuming all tests will pass
+    all_passed = True
 
     for input_file, expected_output_file in zip(input_files, output_files):
         test_number = os.path.basename(input_file).split(".")[0].split("input")[1]
@@ -63,8 +51,6 @@ def run_tests(program_name, program_dir, language, time_limit, memory_limit):
             command = ['java', '-cp', '.', f'{program_name}']
         elif language == 'python':
             command = ['python3', f'{program_name}.py']
-
-        print(f"Running test {test_number} for {program_name}...")
 
         try:
             start_time = time()
@@ -82,51 +68,55 @@ def run_tests(program_name, program_dir, language, time_limit, memory_limit):
             elapsed_time = time() - start_time
 
             if filecmp.cmp(expected_output_file, actual_output_file, shallow=False):
-                print(f"  ✅ Test {test_number} passed in {elapsed_time}s!")
+                print(f"{Fore.GREEN}✔ Test {test_number} passed in {elapsed_time}s!{Style.RESET_ALL}")
                 correct += 1
                 total += 1
             else:
-                print(f"  ❌ Test {test_number} failed! Wrong answer!")
+                print(f"{Fore.RED}❌ Test {test_number} failed! Wrong answer!{Style.RESET_ALL}")
                 with open(expected_output_file, 'r') as expected_file:
                     expected_content = expected_file.read()
-
                 with open(actual_output_file, 'r') as actual_file:
                     actual_content = actual_file.read()
-                print(f"     Expected output:\t {expected_content}")
-                print(f"     Actual output:\t {actual_content}")
+                print(f"{Fore.YELLOW}    Expected output:\t{expected_content}{Style.RESET_ALL}")
+                print(f"{Fore.CYAN}    Actual output:\t{actual_content}{Style.RESET_ALL}")
                 total += 1
                 all_passed = False
 
         except subprocess.CalledProcessError as e:
             elapsed_time = time() - start_time
-            print(f"  ❌ Test {test_number} crashed!")
-            print(f"     Error: {e.stderr.decode('utf-8')}")
+            print(f"{Fore.RED}❌ Test {test_number} crashed!{Style.RESET_ALL}")
+            print(f"{Fore.RED} Error: {e.stderr.decode('utf-8')}{Style.RESET_ALL}")
             all_passed = False
             total += 1
 
         except subprocess.TimeoutExpired:
             elapsed_time = time() - start_time
-            print(f"  ❌ Test {test_number} exceeded time limit of {time_limit} seconds! (Runtime: {elapsed_time}s)")
+            print(f"{Fore.RED}❌ Test {test_number} exceeded time limit of {time_limit} seconds! (Runtime: {elapsed_time}s){Style.RESET_ALL}")
             all_passed = False
             total += 1
 
         except MemoryError:
-            print(f"  ❌ Test {test_number} exceeded memory limit of {memory_limit} MB!")
+            print(f"{Fore.RED}❌ Test {test_number} exceeded memory limit of {memory_limit} MB!{Style.RESET_ALL}")
             all_passed = False
             total += 1
 
         except FileNotFoundError:
-            print(f"  ⚠️ File not found for {program_name}. Ensure {input_file} or {expected_output_file} exists.")
+            print(f"{Fore.YELLOW}⚠ File not found for {program_name}. Ensure {input_file} or {expected_output_file} exists.{Style.RESET_ALL}")
             raise
-            sys.exit(1)
 
         except Exception as e:
-            print(f"  ❌ Test {test_number} failed due to an unexpected error!")
+            print(f"{Fore.RED}❌ Test {test_number} failed due to an unexpected error!{Style.RESET_ALL}")
             print(f"     Error: {e}")
             all_passed = False
             total += 1
 
     if all_passed:
-        print(f"✅ All tests passed for {program_name}! ({correct}/{total} passed)")
+        print(f"{Fore.GREEN}✅ All tests passed for {program_name}! ({correct}/{total} passed){Style.RESET_ALL}")
     else:
-        print(f"❌ Some tests failed for {program_name}. ({correct}/{total} passed)")
+        print(f"{Fore.RED}❌ Some tests failed for {program_name}. ({correct}/{total} passed){Style.RESET_ALL}")
+
+if __name__ == "__main__":
+    if not os.path.exists("venv"):
+        os.system("python3 -m venv venv") # Check if venv exists, if not create it
+    os.system("source venv/bin/activate && pip show colorama > /dev/null || pip install colorama") # Install colorama if not installed
+
