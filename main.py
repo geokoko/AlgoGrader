@@ -26,6 +26,12 @@ def main():
     program_file = os.path.basename(program_path)
     program_name, program_ext = os.path.splitext(program_file)
 
+    print(f"Testing program: {program_name} with extension: {program_ext}")
+    print(f"Located at: {program_path}")
+    print(f"Time limit: {sys.argv[2] if len(sys.argv) >= 3 else 12} seconds")
+    print(f"Memory limit: {sys.argv[3] if len(sys.argv) >= 4 else 128} MB")
+    print(f"Running tests...")
+
     # Ensure the language is recognized
     ext_no_dot = program_ext.replace('.', '')  # eg. ".java" -> "java"
     try:
