@@ -1,2 +1,2 @@
 *.pyc
-/test_cases/*/actual_results/
+/test_cases/**/actual_results/
